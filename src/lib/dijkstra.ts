@@ -6,7 +6,9 @@ export function findShortestPath(
   startId: string,
   endId: string,
 ) {
-  // تبدیل آرایه یال‌ها به یک نقشه مجاورت (Adjacency List)
+  console.log(`🔍 شروع دیکسترا: از ${startId} به ${endId}`);
+
+  // ساخت adjacency list
   const adjacencyList = new Map<string, { nodeId: string; weight: number }[]>();
   edges.forEach((edge) => {
     if (!adjacencyList.has(edge.from)) adjacencyList.set(edge.from, []);
@@ -19,7 +21,9 @@ export function findShortestPath(
       .push({ nodeId: edge.from, weight: edge.weight });
   });
 
-  // اجرای الگوریتم Dijkstra
+  console.log(`📋 تعداد گره‌های مجاور: ${adjacencyList.size}`);
+
+  // دیکسترا
   const distances = new Map<string, number>();
   const previous = new Map<string, string | null>();
   const visited = new Set<string>();
@@ -29,8 +33,8 @@ export function findShortestPath(
   distances.set(startId, 0);
   pq.set(startId, 0);
 
+  let iterations = 0;
   while (pq.size > 0) {
-    // پیدا کردن گره با کمترین فاصله در صف اولویت
     let currentNodeId = "";
     let minDist = Infinity;
     for (const [key, val] of pq.entries()) {
@@ -41,9 +45,13 @@ export function findShortestPath(
     }
     pq.delete(currentNodeId);
 
-    if (currentNodeId === endId) break;
+    if (currentNodeId === endId) {
+      console.log(`✅ گره مقصد پیدا شد (تکرار ${iterations})`);
+      break;
+    }
     if (visited.has(currentNodeId)) continue;
     visited.add(currentNodeId);
+    iterations++;
 
     const neighbors = adjacencyList.get(currentNodeId) || [];
     for (const neighbor of neighbors) {
@@ -58,7 +66,7 @@ export function findShortestPath(
     }
   }
 
-  // بازسازی مسیر (Path Reconstruction)
+  // بازسازی مسیر
   const path: string[] = [];
   let current = endId;
   while (current) {
@@ -68,15 +76,20 @@ export function findShortestPath(
     current = prev;
   }
 
-  if (path[0] !== startId) return { path: [], found: false, distance: 0 }; // مسیری پیدا نشد
+  if (path[0] !== startId) {
+    console.warn("⚠️ مسیر پیدا نشد (هیچ مسیری بین گره‌ها وجود ندارد).");
+    return { path: [], found: false, distance: 0 };
+  }
 
-  // تبدیل شناسه‌ها به مختصات برای فرانت‌اند
   const nodeLookup = new Map(nodes.map((n) => [n.id, n.coords]));
   const pathCoords = path.map((id) => nodeLookup.get(id)).filter(Boolean);
 
+  console.log(
+    `✅ مسیر پیدا شد با ${pathCoords.length} نقطه، فاصله: ${distances.get(endId)}`,
+  );
   return {
     path: pathCoords,
     found: true,
-    distance: distances.get(endId),
+    distance: distances.get(endId) ?? 0,
   };
 }

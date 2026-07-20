@@ -12,11 +12,24 @@ const CustomMap = dynamic(() => import("@/components/CustomMap"), {
 });
 
 const LOCATIONS = [
-  { id: "loc-a", name: "مکان رودی اصلی (A)", coords: { x: 439.5, y: -0.6 } },
-  { id: "loc-b", name: "پیست مسابقه (B)", coords: { x: 1609, y: -570 } },
-  { id: "loc-c", name: "مکان سرپرورده ای (C)", coords: { x: 143.5, y: -1123 } },
-  { id: "loc-d", name: "پارکینگ جنوبی (D)", coords: { x: 1248.2, y: -3691 } },
-  { id: "loc-e", name: "دیربازه فراخی (E)", coords: { x: 304, y: -2750 } },
+  { id: "loc-1", name: "خانه", coords: { x: 1544, y: -1100 } },
+  { id: "loc-2", name: "بیمارستان", coords: { x: 1164, y: -200 } },
+  { id: "loc-3", name: "فروشگاه ابزارآلات", coords: { x: 2303, y: -800 } },
+  { id: "loc-4", name: "کتابخانه عمومی", coords: { x: 409, y: -1000 } },
+  { id: "loc-5", name: "فروشگاه لباس", coords: { x: 2303, y: -1600 } },
+  { id: "loc-6", name: "کلیسا", coords: { x: 409, y: -200 } },
+  { id: "loc-7", name: "میوه و تره بار", coords: { x: 1544, y: -1800 } },
+  { id: "loc-8", name: "شهرداری", coords: { x: 1018, y: -600 } },
+  { id: "loc-9", name: "دانشگاه", coords: { x: 2303, y: -200 } },
+  { id: "loc-10", name: "داروخانه ۱", coords: { x: 409, y: -1600 } },
+  { id: "loc-11", name: "کافه", coords: { x: 1544, y: -900 } },
+  { id: "loc-12", name: "لوازم التحریر", coords: { x: 409, y: -1400 } },
+  { id: "loc-13", name: "آلاچیق", coords: { x: 1544, y: -1400 } },
+  { id: "loc-14", name: "پارک", coords: { x: 2303, y: -1000 } },
+  { id: "loc-15", name: "سوپر مارکت", coords: { x: 2303, y: -1200 } },
+  { id: "loc-16", name: "بانک", coords: { x: 1544, y: -600 } },
+  { id: "loc-17", name: "داروخانه ۲", coords: { x: 2303, y: -600 } },
+  { id: "loc-18", name: "کلانتری", coords: { x: 409, y: -800 } },
 ];
 
 export default function Home() {
@@ -27,25 +40,36 @@ export default function Home() {
   const [endCoords, setEndCoords] = useState<{ x: number; y: number } | null>(
     null,
   );
-  const [pathCoords, setPathCoords] = useState<number[][]>([]);
+  const [pathCoords, setPathCoords] = useState<{ x: number; y: number }[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [activeStartId, setActiveStartId] = useState<string | null>(null);
   const [activeEndId, setActiveEndId] = useState<string | null>(null);
 
-  // ✅ خط پاک‌کننده مسیر (setPathCoords([])) را حذف کردیم!
   const handleStartSelect = (id: string, coords: { x: number; y: number }) => {
+    console.log(`📍 مبدأ انتخاب شد: ${id}`, coords);
     setStartCoords(coords);
     setActiveStartId(id);
   };
 
   const handleEndSelect = (id: string, coords: { x: number; y: number }) => {
+    console.log(`📍 مقصد انتخاب شد: ${id}`, coords);
     setEndCoords(coords);
     setActiveEndId(id);
   };
 
   const handleRouteCalc = async () => {
-    if (!startCoords || !endCoords) return;
+    if (!startCoords || !endCoords) {
+      const msg = "لطفاً هر دو نقطه مبدأ و مقصد را انتخاب کنید.";
+      alert(msg);
+      console.warn("⚠️ ", msg);
+      return;
+    }
+
     setIsLoading(true);
+    console.log("🚀 درخواست مسیر ارسال شد:", {
+      start: startCoords,
+      end: endCoords,
+    });
 
     try {
       const response = await fetch("/api/route", {
@@ -54,24 +78,42 @@ export default function Home() {
         body: JSON.stringify({ start: startCoords, end: endCoords }),
       });
 
-      if (!response.ok) throw new Error(`خطای سرور (کد ${response.status})`);
+      console.log(`📡 وضعیت پاسخ: ${response.status} ${response.statusText}`);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`❌ خطای سرور (کد ${response.status}):`, errorText);
+        alert(`خطای سرور (کد ${response.status}). لطفاً مجدداً تلاش کنید.`);
+        return;
+      }
 
       const data = await response.json();
+      console.log("📦 داده دریافت شده از سرور:", data);
 
       if (!data.success) {
-        alert("سرور مسیری پیدا نکرد: " + (data.error || "خطای نامشخص"));
+        const errorMsg = data.error || "خطای نامشخص در محاسبه مسیر";
+        console.error("❌ خطای منطقی از سمت سرور:", errorMsg, data.debug || "");
+        alert(`❌ ${errorMsg}`);
         return;
       }
 
       if (data.pathCoordinates && data.pathCoordinates.length > 1) {
         setPathCoords(data.pathCoordinates);
-        console.log("✅ مسیر جدید با موفقیت روی نقشه بارگذاری شد!");
+        console.log(
+          `✅ مسیر با موفقیت پیدا شد. تعداد نقاط: ${data.pathCoordinates.length}`,
+        );
+        console.log(`📏 فاصله تقریبی: ${data.distance} واحد`);
+        alert(`✅ مسیر پیدا شد! (فاصله: ${data.distance} واحد)`);
       } else {
-        alert("مسیر پیدا شد اما بسیار کوتاه یا ناقص است!");
+        const msg = "مسیر پیدا شد اما بسیار کوتاه یا ناقص است!";
+        console.warn("⚠️ ", msg, data);
+        alert(msg);
       }
     } catch (error) {
-      console.error("خطای ارتباطی:", error);
-      alert("خطا در برقراری ارتباط با سرور.");
+      console.error("❌ خطای ارتباطی یا خطای غیرمنتظره:", error);
+      alert(
+        "خطا در برقراری ارتباط با سرور. لطفاً اتصال اینترنت را بررسی کنید.",
+      );
     } finally {
       setIsLoading(false);
     }
@@ -79,20 +121,20 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-gray-50 p-4 md:p-6 flex flex-col md:flex-row gap-6">
-      <div className="flex-1 bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden relative h-[50vh] md:h-[85vh]">
+      <div className="flex-1 bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden relative">
         <CustomMap
           pathCoords={pathCoords}
           startCoords={startCoords}
           endCoords={endCoords}
+          imageUrl="/city_map.svg" // یا "/city_map.svg"
         />
       </div>
-
       <div className="w-full md:w-80 lg:w-96 flex flex-col gap-4">
         <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-5">
           <h2 className="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
             <span className="text-green-600">🟢</span> مبدأ حرکت
           </h2>
-          <div className="space-y-2">
+          <div className="space-y-2 max-h-60 overflow-y-auto">
             {LOCATIONS.map((loc) => (
               <button
                 key={`start-${loc.id}`}
@@ -113,7 +155,7 @@ export default function Home() {
           <h2 className="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
             <span className="text-red-600">🔴</span> مقصد
           </h2>
-          <div className="space-y-2">
+          <div className="space-y-2 max-h-60 overflow-y-auto">
             {LOCATIONS.map((loc) => (
               <button
                 key={`end-${loc.id}`}
