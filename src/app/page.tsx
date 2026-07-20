@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 
 const CustomMap = dynamic(() => import("@/components/CustomMap"), {
@@ -44,6 +44,15 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [activeStartId, setActiveStartId] = useState<string | null>(null);
   const [activeEndId, setActiveEndId] = useState<string | null>(null);
+  const [geojsonData, setGeojsonData] = useState(null);
+
+  useEffect(() => {
+    // بارگذاری فایل GeoJSON (از مسیر public یا API)
+    fetch("/city_map_data.geojson")
+      .then((res) => res.json())
+      .then((data) => setGeojsonData(data))
+      .catch((err) => console.error("خطا در بارگذاری GeoJSON:", err));
+  }, []);
 
   const handleStartSelect = (id: string, coords: { x: number; y: number }) => {
     console.log(`📍 مبدأ انتخاب شد: ${id}`, coords);
@@ -126,7 +135,8 @@ export default function Home() {
           pathCoords={pathCoords}
           startCoords={startCoords}
           endCoords={endCoords}
-          imageUrl="/city_map.svg" // یا "/city_map.svg"
+          imageUrl="/city_map.svg"
+          geojsonData={geojsonData}
         />
       </div>
       <div className="w-full md:w-80 lg:w-96 flex flex-col gap-4">
